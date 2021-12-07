@@ -1,16 +1,12 @@
 package de.htwberlin.mauterhebung;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
-import java.sql.*;
-import java.text.DecimalFormat;
-
 import de.htwberlin.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.rowset.serial.SerialException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.sql.*;
 
 /**
  * Die Klasse realisiert den AusleiheService.
@@ -59,8 +55,10 @@ public class MauterServiceImpl implements IMauterhebung {
 			throws UnkownVehicleException, InvalidVehicleDataException, AlreadyCruisedException {
 		if(isFahrzeugImAutomatikverfahren(kennzeichen)){
 			if ((achszahl < 5 && getAutomaticAchszahl(kennzeichen) == achszahl) || (achszahl >= 5 && getAutomaticAchszahl(kennzeichen) >= 5)){
-				var maut = getmautAbschnittLength(mautAbschnitt) * getMautsatz(kennzeichen);
-				setMaut(maut, kennzeichen);
+				var maut = BigDecimal.valueOf(getmautAbschnittLength(mautAbschnitt) * getMautsatz(kennzeichen))
+						.setScale(2, RoundingMode.HALF_UP)
+						.floatValue();
+//				instertMaut(maut, kennzeichen);
 				return maut;
 			}
 			else {
@@ -69,16 +67,35 @@ public class MauterServiceImpl implements IMauterhebung {
 		}
 		else if (isFahrzeugImManuellenVerfahren(kennzeichen)){
 			if ((achszahl < 5 && getManualAchszahl(kennzeichen) == achszahl) || (achszahl >= 5 && getManualAchszahl(kennzeichen) >= 5)){
-				float manualMaut = getManualMaut(kennzeichen);
-				updateBID(kennzeichen);
-				return manualMaut;
+				if (multipleCruises(kennzeichen, mautAbschnitt)){
+					float manualMaut = getManualMaut(kennzeichen);
+					updateBID(kennzeichen);
+					return manualMaut;
+				}
+				else {
+					throw new AlreadyCruisedException();
+				}
+
+			}
+			else {
+				throw new InvalidVehicleDataException();
 			}
 		}
 		else {
 			throw new UnkownVehicleException();
 		}
+	}
 
-		return 0;
+	private boolean multipleCruises(String kennzeichen, int mautAbschnitt) {
+		String sql = String.format("select * from BUCHUNG where BEFAHRUNGSDATUM is null AND kennzeichen = '%s' AND ABSCHNITTS_ID = %d", kennzeichen, mautAbschnitt);
+		try (Statement statement = getConnection().createStatement()) {
+			try (ResultSet resultSet = statement.executeQuery(sql)) {
+				return resultSet.next();
+			}
+		}catch (SQLException e) {
+			L.error("", e);
+			throw new DataException();
+		}
 	}
 
 	private boolean isFahrzeugImAutomatikverfahren(String kennzeichen){
@@ -113,12 +130,7 @@ public class MauterServiceImpl implements IMauterhebung {
 
 		try (Statement statement = getConnection().createStatement()) {
 			try (ResultSet resultSet = statement.executeQuery(sql)) {
-				if(resultSet.next()) {
-					return true;
-				}
-				else {
-					return false;
-				}
+				return resultSet.next();
 			}
 		} catch (SQLException e) {
 			L.error("", e);
@@ -153,7 +165,7 @@ public class MauterServiceImpl implements IMauterhebung {
 	}
 
 	private int getManualAchszahl(String kennzeichen){
-		var sql = "select MK.ACHSZAHL, B.BUCHUNGSDATUM from BUCHUNG B " +
+		var sql = "select MK.ACHSZAHL/*, B.BEFAHRUNGSDATUM*/ from BUCHUNG B " +
 				"join MAUTKATEGORIE MK on B.KATEGORIE_ID = MK. KATEGORIE_ID " +
 				"where B.KENNZEICHEN = '" + kennzeichen + "' and B.B_ID = 1";
 		L.info(sql);
@@ -161,15 +173,15 @@ public class MauterServiceImpl implements IMauterhebung {
 		try (Statement statement = getConnection().createStatement()){
 			try (ResultSet resultSet = statement.executeQuery(sql)) {
 				if (resultSet.next()) {
-					if (resultSet.getObject("B.BUCHUNGSDATUM") != null){
+					/*if (resultSet.getObject("BEFAHRUNGSDATUM") != null){
 						throw new AlreadyCruisedException();
 
 					}
-					else{
-						String achszhl = resultSet.getString("MK.ACHSZAHL");
+					else{*/
+						String achszhl = resultSet.getString("ACHSZAHL");
 
 						return Integer.parseInt(String.valueOf(achszhl.charAt(achszhl.length()-1)));
-					}
+					/*}*/
 				} else {
 					return 0;
 				}
@@ -204,9 +216,8 @@ public class MauterServiceImpl implements IMauterhebung {
 		try (Statement statement = getConnection().createStatement()){
 			try (ResultSet resultSet = statement.executeQuery(sql)) {
 				if (resultSet.next()) {
-					var mautsatz = resultSet.getFloat("MK.MAUTSATZ_JE_KM");
-
-					return mautsatz;
+					// Mautsatz is stored in cent
+					return resultSet.getFloat("MAUTSATZ_JE_KM")/100;
 				}
 				else {
 					return 0;
@@ -226,9 +237,8 @@ public class MauterServiceImpl implements IMauterhebung {
 		try (Statement statement = getConnection().createStatement()){
 			try (ResultSet resultSet = statement.executeQuery(sql)) {
 				if (resultSet.next()) {
-					var length = resultSet.getFloat("LAENGE");
 
-					return length;
+					return resultSet.getFloat("LAENGE")/1000;
 				}
 				else {
 					return 0;
@@ -258,14 +268,15 @@ public class MauterServiceImpl implements IMauterhebung {
 		}
 	}
 
-	private void setMaut(float maut, String kennzeichen) {
-		String sql = "update MAUTERHEBUNG set KOSTEN = ? where KENNZEICHEN = '" + kennzeichen + "'";
+	// TODO needs to be implemented properly
+	private void instertMaut(float maut, String kennzeichen) {
+
+		String sql = String.format("insert into MAUTERHEBUNG (MAUT_ID, ABSCHNITTS_ID, FZG_ID, KATEGORIE_ID, BEFAHRUNGSDATUM, KOSTEN) values ()", maut , kennzeichen);
+
 		L.info(sql);
 
-		try (PreparedStatement statement = getConnection().prepareStatement(sql)){
-			statement.setLong(1, Long.parseLong(new DecimalFormat("#.##").format(maut)));
-//			Long.valueOf(BigDecimal.valueOf(maut).setScale(2, RoundingMode.HALF_UP))
-			statement.executeUpdate();
+		try (Statement statement = getConnection().createStatement()){
+			statement.executeUpdate(sql);
 
 		} catch (SQLException e) {
 			L.error("", e);
