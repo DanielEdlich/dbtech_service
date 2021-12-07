@@ -1,16 +1,16 @@
 package de.htwberlin.mauterhebung;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.sql.*;
+import java.text.DecimalFormat;
 
+import de.htwberlin.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import de.htwberlin.exceptions.AlreadyCruisedException;
-import de.htwberlin.exceptions.DataException;
-import de.htwberlin.exceptions.InvalidVehicleDataException;
-import de.htwberlin.exceptions.UnkownVehicleException;
+
+import javax.sql.rowset.serial.SerialException;
 
 /**
  * Die Klasse realisiert den AusleiheService.
@@ -59,30 +59,25 @@ public class MauterServiceImpl implements IMauterhebung {
 			throws UnkownVehicleException, InvalidVehicleDataException, AlreadyCruisedException {
 		if(isFahrzeugImAutomatikverfahren(kennzeichen)){
 			if ((achszahl < 5 && getAutomaticAchszahl(kennzeichen) == achszahl) || (achszahl >= 5 && getAutomaticAchszahl(kennzeichen) >= 5)){
-
+				var maut = getmautAbschnittLength(mautAbschnitt) * getMautsatz(kennzeichen);
+				setMaut(maut, kennzeichen);
+				return maut;
 			}
 			else {
 				throw new InvalidVehicleDataException();
 			}
-
 		}
 		else if (isFahrzeugImManuellenVerfahren(kennzeichen)){
-			if ((achszahl < 5 && getAutomaticAchszahl(kennzeichen) == achszahl) || (achszahl >= 5 && getAutomaticAchszahl(kennzeichen) >= 5)){
-
+			if ((achszahl < 5 && getManualAchszahl(kennzeichen) == achszahl) || (achszahl >= 5 && getManualAchszahl(kennzeichen) >= 5)){
+				float manualMaut = getManualMaut(kennzeichen);
+				updateBID(kennzeichen);
+				return manualMaut;
 			}
-			else {
-				throw new InvalidVehicleDataException();
-			}
-
 		}
 		else {
 			throw new UnkownVehicleException();
 		}
 
-
-
-
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
@@ -146,19 +141,19 @@ public class MauterServiceImpl implements IMauterhebung {
 
 					//var a = Integer.parseInt(String.valueOf(achszhl.charAt(achszhl.length()-1)));
 					return Integer.parseInt(String.valueOf(achszhl.charAt(achszhl.length()-1)));
-
-				} else {
-					throw new UnkownVehicleException();
+				}
+				else {
+					return 0;
 				}
 			}
 		} catch (SQLException e) {
 			L.error("", e);
-			throw new DataException();
+			throw new ServiceException();
 		}
 	}
 
 	private int getManualAchszahl(String kennzeichen){
-		var sql = "select MK.ACHSZAHL from BUCHUNG B " +
+		var sql = "select MK.ACHSZAHL, B.BUCHUNGSDATUM from BUCHUNG B " +
 				"join MAUTKATEGORIE MK on B.KATEGORIE_ID = MK. KATEGORIE_ID " +
 				"where B.KENNZEICHEN = '" + kennzeichen + "' and B.B_ID = 1";
 		L.info(sql);
@@ -166,21 +161,115 @@ public class MauterServiceImpl implements IMauterhebung {
 		try (Statement statement = getConnection().createStatement()){
 			try (ResultSet resultSet = statement.executeQuery(sql)) {
 				if (resultSet.next()) {
-					String achszhl = resultSet.getString(1);
+					if (resultSet.getObject("B.BUCHUNGSDATUM") != null){
+						throw new AlreadyCruisedException();
 
-					return Integer.parseInt(String.valueOf(achszhl.charAt(achszhl.length()-1)));
+					}
+					else{
+						String achszhl = resultSet.getString("MK.ACHSZAHL");
 
+						return Integer.parseInt(String.valueOf(achszhl.charAt(achszhl.length()-1)));
+					}
 				} else {
-					throw new UnkownVehicleException();
+					return 0;
 				}
 			}
 		} catch (SQLException e) {
 			L.error("", e);
-			throw new DataException();
+			throw new ServiceException();
 		}
 	}
 
+	private void updateBID(String kennzeichen){
+		String sql = "update BUCHUNG set B_ID = 3 where KENNZEICHEN = '" + kennzeichen + "'";
+		L.info(sql);
 
+		try (Statement statement = getConnection().createStatement()){
+			statement.executeUpdate(sql);
 
+		} catch (SQLException e) {
+			L.error("", e);
+			throw new ServiceException();
+		}
+	}
 
+	private float getMautsatz(String kennzeichen) {
+		var sql = "select MK.MAUTSATZ_JE_KM from FAHRZEUG F " +
+				"join FAHRZEUGGERAT FG on F.FZ_ID = FG.FZ_ID " +
+				"join MAUTERHEBUNG M on FG.FZG_ID = M.FZG_ID " +
+				"join MAUTKATEGORIE MK on M.KATEGORIE_ID = MK. KATEGORIE_ID " +
+				"where F.KENNZEICHEN = '" + kennzeichen + "'";
+		L.info(sql);
+
+		try (Statement statement = getConnection().createStatement()){
+			try (ResultSet resultSet = statement.executeQuery(sql)) {
+				if (resultSet.next()) {
+					var mautsatz = resultSet.getFloat("MK.MAUTSATZ_JE_KM");
+
+					return mautsatz;
+				}
+				else {
+					return 0;
+				}
+			}
+		} catch (SQLException e) {
+			L.error("", e);
+			throw new ServiceException();
+		}
+	}
+
+	private float getmautAbschnittLength(int mautAbschnitt) {
+		var sql = "select LAENGE from MAUTABSCHNITT where  ABSCHNITTS_ID = " + mautAbschnitt ;
+
+		L.info(sql);
+
+		try (Statement statement = getConnection().createStatement()){
+			try (ResultSet resultSet = statement.executeQuery(sql)) {
+				if (resultSet.next()) {
+					var length = resultSet.getFloat("LAENGE");
+
+					return length;
+				}
+				else {
+					return 0;
+				}
+			}
+		} catch (SQLException e) {
+			L.error("", e);
+			throw new ServiceException();
+		}
+	}
+
+	private float getManualMaut(String kennzeichen) {
+		var sql = "select KOSTEN from BUCHUNG where B_ID = 1 and KENNZEICHEN = '" + kennzeichen + "'";
+
+		try(Statement statement = getConnection().createStatement()) {
+			try (ResultSet resultSet = statement.executeQuery(sql)) {
+				if(resultSet.next()){
+					return resultSet.getFloat("KOSTEN");
+				}
+				else {
+					return 0;
+				}
+			}
+		} catch (SQLException e) {
+			L.error("", e);
+			throw new ServiceException();
+		}
+	}
+
+	private void setMaut(float maut, String kennzeichen) {
+		String sql = "update MAUTERHEBUNG set KOSTEN = ? where KENNZEICHEN = '" + kennzeichen + "'";
+		L.info(sql);
+
+		try (PreparedStatement statement = getConnection().prepareStatement(sql)){
+			statement.setLong(1, Long.parseLong(new DecimalFormat("#.##").format(maut)));
+//			Long.valueOf(BigDecimal.valueOf(maut).setScale(2, RoundingMode.HALF_UP))
+			statement.executeUpdate();
+
+		} catch (SQLException e) {
+			L.error("", e);
+			throw new ServiceException();
+		}
+	}
 }
