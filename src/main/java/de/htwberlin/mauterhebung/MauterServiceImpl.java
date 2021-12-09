@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
+import java.time.LocalDateTime;
 
 /**
  * Die Klasse realisiert den AusleiheService.
@@ -67,9 +68,10 @@ public class MauterServiceImpl implements IMauterhebung {
 		}
 		else if (isFahrzeugImManuellenVerfahren(kennzeichen)){
 			if ((achszahl < 5 && getManualAchszahl(kennzeichen) == achszahl) || (achszahl >= 5 && getManualAchszahl(kennzeichen) >= 5)){
-				if (multipleCruises(kennzeichen, mautAbschnitt)){
+				int buchungsID = multipleCruises(kennzeichen, mautAbschnitt);
+				if (buchungsID != 0){
 					float manualMaut = getManualMaut(kennzeichen);
-					updateBID(kennzeichen);
+					updateBID(buchungsID);
 					return manualMaut;
 				}
 				else {
@@ -86,17 +88,7 @@ public class MauterServiceImpl implements IMauterhebung {
 		}
 	}
 
-	private boolean multipleCruises(String kennzeichen, int mautAbschnitt) {
-		String sql = String.format("select * from BUCHUNG where BEFAHRUNGSDATUM is null AND kennzeichen = '%s' AND ABSCHNITTS_ID = %d", kennzeichen, mautAbschnitt);
-		try (Statement statement = getConnection().createStatement()) {
-			try (ResultSet resultSet = statement.executeQuery(sql)) {
-				return resultSet.next();
-			}
-		}catch (SQLException e) {
-			L.error("", e);
-			throw new DataException();
-		}
-	}
+
 
 	private boolean isFahrzeugImAutomatikverfahren(String kennzeichen){
 		var sql = "select ABMELDEDATUM, STATUS from FAHRZEUG F join FAHRZEUGGERAT FG on F.FZ_ID = FG.FZ_ID where F.KENNZEICHEN = '"
@@ -139,10 +131,11 @@ public class MauterServiceImpl implements IMauterhebung {
 	}
 
 	private int getAutomaticAchszahl(String kennzeichen){
-		var sql = "select MK.ACHSZAHL from FAHRZEUG F " +
+		var sql = /*"select MK.ACHSZAHL from FAHRZEUG F " +
 				"join FAHRZEUGGERAT FG on F.FZ_ID = FG.FZ_ID " +
 				"join MAUTERHEBUNG M on FG.FZG_ID = M.FZG_ID " +
-				"join MAUTKATEGORIE MK on M.KATEGORIE_ID = MK. KATEGORIE_ID " +
+				"join MAUTKATEGORIE MK on M.KATEGORIE_ID = MK. KATEGORIE_ID " +*/
+				"select ACHSEN from FAHRZEUG F " +
 				"where F.KENNZEICHEN = '" + kennzeichen + "'";
 		L.info(sql);
 
@@ -158,47 +151,6 @@ public class MauterServiceImpl implements IMauterhebung {
 					return 0;
 				}
 			}
-		} catch (SQLException e) {
-			L.error("", e);
-			throw new ServiceException();
-		}
-	}
-
-	private int getManualAchszahl(String kennzeichen){
-		var sql = "select MK.ACHSZAHL/*, B.BEFAHRUNGSDATUM*/ from BUCHUNG B " +
-				"join MAUTKATEGORIE MK on B.KATEGORIE_ID = MK. KATEGORIE_ID " +
-				"where B.KENNZEICHEN = '" + kennzeichen + "' and B.B_ID = 1";
-		L.info(sql);
-
-		try (Statement statement = getConnection().createStatement()){
-			try (ResultSet resultSet = statement.executeQuery(sql)) {
-				if (resultSet.next()) {
-					/*if (resultSet.getObject("BEFAHRUNGSDATUM") != null){
-						throw new AlreadyCruisedException();
-
-					}
-					else{*/
-						String achszhl = resultSet.getString("ACHSZAHL");
-
-						return Integer.parseInt(String.valueOf(achszhl.charAt(achszhl.length()-1)));
-					/*}*/
-				} else {
-					return 0;
-				}
-			}
-		} catch (SQLException e) {
-			L.error("", e);
-			throw new ServiceException();
-		}
-	}
-
-	private void updateBID(String kennzeichen){
-		String sql = "update BUCHUNG set B_ID = 3 where KENNZEICHEN = '" + kennzeichen + "'";
-		L.info(sql);
-
-		try (Statement statement = getConnection().createStatement()){
-			statement.executeUpdate(sql);
-
 		} catch (SQLException e) {
 			L.error("", e);
 			throw new ServiceException();
@@ -250,6 +202,60 @@ public class MauterServiceImpl implements IMauterhebung {
 		}
 	}
 
+	// TODO needs to be implemented properly
+	private void instertMaut(float maut, String kennzeichen) {
+
+		String sql = String.format("insert into MAUTERHEBUNG (MAUT_ID, ABSCHNITTS_ID, FZG_ID, KATEGORIE_ID, BEFAHRUNGSDATUM, KOSTEN) values ()", maut , kennzeichen);
+
+		L.info(sql);
+
+		try (Statement statement = getConnection().createStatement()){
+			statement.executeUpdate(sql);
+
+		} catch (SQLException e) {
+			L.error("", e);
+			throw new ServiceException();
+		}
+	}
+
+	//-------------------- manual ------------------------------------------------------
+	private int getManualAchszahl(String kennzeichen){
+		var sql = "select MK.ACHSZAHL from BUCHUNG B " +
+				"join MAUTKATEGORIE MK on B.KATEGORIE_ID = MK. KATEGORIE_ID " +
+				"where B.KENNZEICHEN = '" + kennzeichen + "'";
+		L.info(sql);
+
+		try (Statement statement = getConnection().createStatement()){
+			try (ResultSet resultSet = statement.executeQuery(sql)) {
+				if (resultSet.next()) {
+					String achszhl = resultSet.getString("ACHSZAHL");
+
+					return Integer.parseInt(String.valueOf(achszhl.charAt(achszhl.length()-1)));
+				} else {
+					return 0;
+				}
+			}
+		} catch (SQLException e) {
+			L.error("", e);
+			throw new ServiceException();
+		}
+	}
+
+	private int multipleCruises(String kennzeichen, int mautAbschnitt) {
+		String sql = String.format("select BUCHUNG_ID from BUCHUNG where BEFAHRUNGSDATUM is null AND kennzeichen = '%s' AND ABSCHNITTS_ID = %d", kennzeichen, mautAbschnitt);
+		try (Statement statement = getConnection().createStatement()) {
+			try (ResultSet resultSet = statement.executeQuery(sql)) {
+				if (resultSet.next()) {
+					return resultSet.getInt("BUCHUNG_ID");
+				}
+				else return 0;
+			}
+		}catch (SQLException e) {
+			L.error("", e);
+			throw new DataException();
+		}
+	}
+
 	private float getManualMaut(String kennzeichen) {
 		var sql = "select KOSTEN from BUCHUNG where B_ID = 1 and KENNZEICHEN = '" + kennzeichen + "'";
 
@@ -268,15 +274,13 @@ public class MauterServiceImpl implements IMauterhebung {
 		}
 	}
 
-	// TODO needs to be implemented properly
-	private void instertMaut(float maut, String kennzeichen) {
-
-		String sql = String.format("insert into MAUTERHEBUNG (MAUT_ID, ABSCHNITTS_ID, FZG_ID, KATEGORIE_ID, BEFAHRUNGSDATUM, KOSTEN) values ()", maut , kennzeichen);
-
+	private void updateBID(int buchungsId){
+		String sql = "update BUCHUNG set B_ID = 3, BEFAHRUNGSDATUM = ? where  BUCHUNG_ID = '" + buchungsId + "'";
 		L.info(sql);
 
-		try (Statement statement = getConnection().createStatement()){
-			statement.executeUpdate(sql);
+		try (PreparedStatement statement = getConnection().prepareStatement(sql)){
+			statement.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+			statement.executeUpdate();
 
 		} catch (SQLException e) {
 			L.error("", e);
