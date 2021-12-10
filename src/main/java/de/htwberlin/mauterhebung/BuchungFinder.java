@@ -15,6 +15,10 @@ public class BuchungFinder {
     private static final Logger L = LoggerFactory.getLogger(BuchungFinder.class);
     private Connection connection;
 
+    public BuchungFinder(Connection connection) {
+        this.setConnection(connection);
+    }
+
     public void setConnection(Connection connection) {
         this.connection = connection;
     }

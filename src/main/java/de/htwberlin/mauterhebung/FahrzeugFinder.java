@@ -16,6 +16,10 @@ public class FahrzeugFinder
     private static final Logger L = LoggerFactory.getLogger(Fahrzeug.class);
     private Connection connection;
 
+    public FahrzeugFinder(Connection connection) {
+        this.setConnection(connection);
+    }
+
     public void setConnection(Connection connection)
     {
         this.connection = connection;
@@ -39,26 +43,28 @@ public class FahrzeugFinder
 
         try (Statement statement = getConnection().createStatement())
         {
-            try (ResultSet resultSet = statement.executeQuery(sql))
-            {
-                fahrzeug.setFZ_ID(resultSet.getInt("FZ_ID"));
-                fahrzeug.setSSKL_ID(resultSet.getInt("SSKL_ID"));
-                fahrzeug.setNUTZER_ID(resultSet.getInt("NUTZER_ID"));
-                fahrzeug.setKENNZEICHEN(kennzeichen);
-                fahrzeug.setFIN(resultSet.getString("FIN"));
-                fahrzeug.setACHSEN(resultSet.getInt("ACHSEN"));
-                fahrzeug.setGEWICHT(resultSet.getInt("GEWICHT"));
-                fahrzeug.setANMELDEDATUM(resultSet.getDate("ANMELDEDATUM"));
-                fahrzeug.setABMELDEDATUM(resultSet.getDate("ABMELDEDATUM"));
-                fahrzeug.setZULASSUNGSLAND(resultSet.getString("ZULASSUNGSLAND"));
+            try (ResultSet resultSet = statement.executeQuery(sql)) {
+                if (resultSet.next()){
+                    fahrzeug.setFZ_ID(resultSet.getInt("FZ_ID"));
+                    fahrzeug.setSSKL_ID(resultSet.getInt("SSKL_ID"));
+                    fahrzeug.setNUTZER_ID(resultSet.getInt("NUTZER_ID"));
+                    fahrzeug.setKENNZEICHEN(kennzeichen);
+                    fahrzeug.setFIN(resultSet.getString("FIN"));
+                    fahrzeug.setACHSEN(resultSet.getInt("ACHSEN"));
+                    fahrzeug.setGEWICHT(resultSet.getInt("GEWICHT"));
+                    fahrzeug.setANMELDEDATUM(resultSet.getDate("ANMELDEDATUM"));
+                    fahrzeug.setABMELDEDATUM(resultSet.getDate("ABMELDEDATUM"));
+                    fahrzeug.setZULASSUNGSLAND(resultSet.getString("ZULASSUNGSLAND"));
 
-                return fahrzeug;
+                    return fahrzeug;
+                }
             }
         } catch (SQLException e)
         {
             L.error("", e);
             throw new ServiceException();
         }
+        return null;
     }
 
 }

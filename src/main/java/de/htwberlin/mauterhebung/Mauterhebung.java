@@ -26,12 +26,10 @@ public class Mauterhebung {
 
 
 
-    public Mauterhebung(int MAUT_ID, int ABSCHNITTS_ID, int FZG_ID, int KATEGORIE_ID, Timestamp BEFAHRUNGSDATUM, float KOSTEN){
-        this.MAUT_ID = MAUT_ID;
+    public Mauterhebung(int ABSCHNITTS_ID, int FZG_ID, int KATEGORIE_ID, float KOSTEN){
         this.ABSCHNITTS_ID = ABSCHNITTS_ID;
         this.FZG_ID = FZG_ID;
         this.KATEGORIE_ID = KATEGORIE_ID;
-        this.BEFAHRUNGSDATUM = BEFAHRUNGSDATUM;
         this.KOSTEN = KOSTEN;
     }
 
@@ -90,11 +88,13 @@ public class Mauterhebung {
         this.KOSTEN = KOSTEN;
     }
 
-    public void insertMaut() {
+    public void insert() {
 
         int id = getNextMautId();
 
-        String sql = String.format("insert into MAUTERHEBUNG (MAUT_ID, ABSCHNITTS_ID, FZG_ID, KATEGORIE_ID, BEFAHRUNGSDATUM, KOSTEN) values (%d, %d, %d, %d, '%s', %d)",id, this.ABSCHNITTS_ID, this.FZG_ID, this.KATEGORIE_ID, this.BEFAHRUNGSDATUM.toString(), this.KOSTEN);
+        String sql = String.format("insert into MAUTERHEBUNG (MAUT_ID, ABSCHNITTS_ID, FZG_ID, KATEGORIE_ID, " +
+                "BEFAHRUNGSDATUM, KOSTEN) values (%d, %d, %d, %d, '%s', %f)",
+                id, this.ABSCHNITTS_ID, this.FZG_ID, this.KATEGORIE_ID, this.BEFAHRUNGSDATUM.toString(), this.KOSTEN);
 
         L.info(sql);
 
@@ -117,7 +117,7 @@ public class Mauterhebung {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
 
                 if (resultSet.next()) {
-                    return resultSet.getInt(1)+1000;
+                    return resultSet.getInt(1) + 1000;
                 }
                 else {
                     return 0;

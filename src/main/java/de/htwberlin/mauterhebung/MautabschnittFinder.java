@@ -15,6 +15,10 @@ public class MautabschnittFinder {
     private static final Logger L = LoggerFactory.getLogger(MautabschnittFinder.class);
     private Connection connection;
 
+    public MautabschnittFinder(Connection connection) {
+        setConnection(connection);
+    }
+
     public void setConnection(Connection connection)
     {
         this.connection = connection;
