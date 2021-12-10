@@ -13,20 +13,16 @@ public class Fahrzeug {
     private static final Logger L = LoggerFactory.getLogger(Fahrzeug.class);
     private Connection connection;
 
-    int FZ_ID;
-    int SSKL_ID;
-    int NUTZER_ID;
-    String KENNZEICHEN;
-    String FIN;
-    int ACHSEN;
-    int GEWICHT;
-    Date ANMELDEDATUM;
-    Date ABMELDEDATUM;
-    String ZULASSUNGSLAND;
-
-
-    public Fahrzeug(){};
-
+    private int FZ_ID;
+    private int SSKL_ID;
+    private int NUTZER_ID;
+    private String KENNZEICHEN;
+    private String FIN;
+    private int ACHSEN;
+    private int GEWICHT;
+    private Date ANMELDEDATUM;
+    private Date ABMELDEDATUM;
+    private String ZULASSUNGSLAND;
 
     public int getFZ_ID() {
         return FZ_ID;
@@ -119,7 +115,7 @@ public class Fahrzeug {
         return connection;
     }
 
-
+    // TODO method senseless, value already stored in local variable achszahl
     public int getAchszahl(){
         var sql = "select ACHSEN from FAHRZEUG F " +
                         "where F.KENNZEICHEN = '" + this.KENNZEICHEN + "'";
@@ -141,11 +137,13 @@ public class Fahrzeug {
             throw new ServiceException();
         }
     }
+
     public float getMautsatzProKM(){
         var sql = "select MK.MAUTSATZ_JE_KM from FAHRZEUG F " +
                 "join SCHADSTOFFKLASSE S on F.SSKL_ID = S.SSKKL_ID " +
                 "join MAUTKATEGORIE MK on S.SSKL_ID = MK.SSKL_ID " +
-                "where F.Achsen = MK.Achszahl";
+                "where F.Achsen = MK.Achszahl AND F.ZF_ID = " + this.getFZ_ID();
+
         L.info(sql);
 
         try (Statement statement = getConnection().createStatement()){
@@ -166,7 +164,7 @@ public class Fahrzeug {
     public int getFahrzeugGeraetId(){
         var sql = "select FG.FZG_ID from FAHRZEUG F " +
                 "join FAHRZEUGGERAT FG on F.FZ_ID = FG.FZ_ID " +
-                "where F.KENNZEICHEN = '" + this.KENNZEICHEN + "'";
+                "where FG.FZ_ID = " + this.getFZ_ID();
         L.info(sql);
 
         try (Statement statement = getConnection().createStatement()){
@@ -187,7 +185,7 @@ public class Fahrzeug {
         var sql = "select MK.KATEGORIE_ID from FAHRZEUG F " +
                 "join SCHADSTOFFKLASSE S on F.SSKL_ID = S.SSKKL_ID " +
                 "join MAUTKATEGORIE MK on S.SSKL_ID = MK.SSKL_ID " +
-                "where F.Achsen = MK.Achszahl AND where F.ZF_ID = " + this.FZ_ID;
+                "where F.Achsen = MK.Achszahl AND F.ZF_ID = " + this.getFZ_ID();
         L.info(sql);
 
         try (Statement statement = getConnection().createStatement()){

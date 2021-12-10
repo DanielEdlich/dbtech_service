@@ -84,4 +84,8 @@ public class Mautabschnitt {
     public int getLaengeInMeter(){
         return LAENGE;
     }
+
+    public float getLaengeInKm() {
+        return LAENGE/1000;
+    }
 }
