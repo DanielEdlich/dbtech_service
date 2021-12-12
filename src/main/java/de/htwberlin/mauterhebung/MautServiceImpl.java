@@ -8,9 +8,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Connection;
 
-public class MauterServiceImplDAO implements IMauterhebung{
+public class MautServiceImpl implements IMauterhebung{
 
-    private static final Logger L = LoggerFactory.getLogger(MauterServiceImplDAO.class);
+    private static final Logger L = LoggerFactory.getLogger(MautServiceImpl.class);
     private Connection connection;
 
     @Override
