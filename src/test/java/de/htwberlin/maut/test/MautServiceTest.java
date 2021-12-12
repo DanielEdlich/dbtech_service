@@ -3,6 +3,7 @@ package de.htwberlin.maut.test;
 import static org.junit.Assert.assertEquals;
 import java.net.URL;
 
+import de.htwberlin.mauterhebung.MauterServiceImplDAO;
 import org.dbunit.IDatabaseTester;
 import org.dbunit.JdbcDatabaseTester;
 import org.dbunit.database.IDatabaseConnection;
@@ -35,7 +36,7 @@ public class MautServiceTest {
 	private static URL dataFeedUrl = ClassLoader.getSystemResource(dataDirPath);
 	private static IDataSet feedDataSet = null;
 
-	private static IMauterhebung maut = new MauterServiceImpl();
+	private static IMauterhebung maut = new MauterServiceImplDAO();
 
 	// Wird vor jedem Test ausgeführt
 	@org.junit.Before
