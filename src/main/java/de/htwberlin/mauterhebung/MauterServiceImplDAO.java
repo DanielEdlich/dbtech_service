@@ -10,7 +10,7 @@ import java.sql.Connection;
 
 public class MauterServiceImplDAO implements IMauterhebung{
 
-    private static final Logger L = LoggerFactory.getLogger(MauterServiceImpl.class);
+    private static final Logger L = LoggerFactory.getLogger(MauterServiceImplDAO.class);
     private Connection connection;
 
     @Override

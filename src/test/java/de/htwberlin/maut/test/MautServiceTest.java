@@ -18,7 +18,6 @@ import de.htwberlin.exceptions.AlreadyCruisedException;
 import de.htwberlin.exceptions.InvalidVehicleDataException;
 import de.htwberlin.exceptions.UnkownVehicleException;
 import de.htwberlin.mauterhebung.IMauterhebung;
-import de.htwberlin.mauterhebung.MauterServiceImpl;
 import de.htwberlin.test.utils.DbUnitUtils;
 import de.htwberlin.utils.DbCred;
 
