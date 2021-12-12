@@ -42,22 +42,24 @@ public class MautabschnittFinder {
 
         try (Statement statement = getConnection().createStatement())
         {
-            try (ResultSet resultSet = statement.executeQuery(sql))
-            {
-                mautabschnitt.setABSCHNITTS_ID(resultSet.getInt("ABSCHNITTS_ID"));
-                mautabschnitt.setLAENGE(resultSet.getInt("LAENGE"));
-                mautabschnitt.setSTART_KOORDINATE(resultSet.getString("START_KOORDINATE"));
-                mautabschnitt.setZIEL_KOORDINATE(resultSet.getString("ZIEL_KOORDINATE"));
-                mautabschnitt.setNAME(resultSet.getString("NAME"));
-                mautabschnitt.setABSCHNITTSTYP(resultSet.getString("ABSCHNITTSTYP"));
+            try (ResultSet resultSet = statement.executeQuery(sql)) {
+                if (resultSet.next()){
+                    mautabschnitt.setABSCHNITTS_ID(resultSet.getInt("ABSCHNITTS_ID"));
+                    mautabschnitt.setLAENGE(resultSet.getInt("LAENGE"));
+                    mautabschnitt.setSTART_KOORDINATE(resultSet.getString("START_KOORDINATE"));
+                    mautabschnitt.setZIEL_KOORDINATE(resultSet.getString("ZIEL_KOORDINATE"));
+                    mautabschnitt.setNAME(resultSet.getString("NAME"));
+                    mautabschnitt.setABSCHNITTSTYP(resultSet.getString("ABSCHNITTSTYP"));
 
-                return mautabschnitt;
+                    return mautabschnitt;
+                }
             }
         } catch (SQLException e)
         {
             L.error("", e);
             throw new ServiceException();
         }
+        return null;
     }
 
 }

@@ -9,7 +9,7 @@ import java.sql.Connection;
 public class Mautabschnitt {
 
     private int ABSCHNITTS_ID;
-    private int LAENGE;
+    private float LAENGE;
     private String START_KOORDINATE;
     private String ZIEL_KOORDINATE;
     private String NAME;
@@ -40,7 +40,7 @@ public class Mautabschnitt {
         this.ABSCHNITTS_ID = ABSCHNITTS_ID;
     }
 
-    public int getLAENGE() {
+    public float getLAENGE() {
         return LAENGE;
     }
 
@@ -81,11 +81,11 @@ public class Mautabschnitt {
     }
 
 
-    public int getLaengeInMeter(){
+    public float getLaengeInMeter(){
         return LAENGE;
     }
 
     public float getLaengeInKm() {
-        return LAENGE/1000;
+        return LAENGE / 1000;
     }
 }

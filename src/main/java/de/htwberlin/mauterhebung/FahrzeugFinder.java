@@ -36,7 +36,8 @@ public class FahrzeugFinder
 
     public Fahrzeug findByKennzeichen(String kennzeichen)
     {
-        var sql = "select * from FAHRZEUG F where F.KENNZEICHEN = '" + kennzeichen + "'";
+        var sql = "select * from FAHRZEUG F join FAHRZEUGGERAT FG on F.FZ_ID = FG.FZ_ID " +
+                "where STATUS = 'active' and ABMELDEDATUM is null and F.KENNZEICHEN = '" + kennzeichen + "'";
 
         Fahrzeug fahrzeug = new Fahrzeug();
         L.info(sql);
@@ -45,9 +46,9 @@ public class FahrzeugFinder
         {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 if (resultSet.next()){
-                    fahrzeug.setFZ_ID(resultSet.getInt("FZ_ID"));
-                    fahrzeug.setSSKL_ID(resultSet.getInt("SSKL_ID"));
-                    fahrzeug.setNUTZER_ID(resultSet.getInt("NUTZER_ID"));
+                    fahrzeug.setFZ_ID(resultSet.getLong("FZ_ID"));
+                    fahrzeug.setSSKL_ID(resultSet.getLong("SSKL_ID"));
+                    fahrzeug.setNUTZER_ID(resultSet.getLong("NUTZER_ID"));
                     fahrzeug.setKENNZEICHEN(kennzeichen);
                     fahrzeug.setFIN(resultSet.getString("FIN"));
                     fahrzeug.setACHSEN(resultSet.getInt("ACHSEN"));
@@ -55,6 +56,8 @@ public class FahrzeugFinder
                     fahrzeug.setANMELDEDATUM(resultSet.getDate("ANMELDEDATUM"));
                     fahrzeug.setABMELDEDATUM(resultSet.getDate("ABMELDEDATUM"));
                     fahrzeug.setZULASSUNGSLAND(resultSet.getString("ZULASSUNGSLAND"));
+
+                    fahrzeug.setFZG_ID(resultSet.getLong("FZG_ID"));
 
                     return fahrzeug;
                 }

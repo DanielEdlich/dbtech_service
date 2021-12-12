@@ -5,15 +5,17 @@ import de.htwberlin.exceptions.ServiceException;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.time.LocalDateTime;
+
 import org.slf4j.Logger;
 
 
 public class Mauterhebung {
 
-    private int MAUT_ID;
-    private int ABSCHNITTS_ID;
-    private int FZG_ID;
-    private int KATEGORIE_ID;
+    private long MAUT_ID;
+    private long ABSCHNITTS_ID;
+    private long FZG_ID;
+    private long KATEGORIE_ID;
     private Timestamp BEFAHRUNGSDATUM;
     private float KOSTEN;
 
@@ -26,7 +28,7 @@ public class Mauterhebung {
 
 
 
-    public Mauterhebung(int ABSCHNITTS_ID, int FZG_ID, int KATEGORIE_ID, float KOSTEN){
+    public Mauterhebung(long ABSCHNITTS_ID, long FZG_ID, long KATEGORIE_ID, float KOSTEN){
         this.ABSCHNITTS_ID = ABSCHNITTS_ID;
         this.FZG_ID = FZG_ID;
         this.KATEGORIE_ID = KATEGORIE_ID;
@@ -40,7 +42,7 @@ public class Mauterhebung {
         return connection;
     }
 
-    public int getMAUT_ID() {
+    public long getMAUT_ID() {
         return MAUT_ID;
     }
 
@@ -48,7 +50,7 @@ public class Mauterhebung {
         this.MAUT_ID = MAUT_ID;
     }
 
-    public int getABSCHNITTS_ID() {
+    public long getABSCHNITTS_ID() {
         return ABSCHNITTS_ID;
     }
 
@@ -56,7 +58,7 @@ public class Mauterhebung {
         this.ABSCHNITTS_ID = ABSCHNITTS_ID;
     }
 
-    public int getFZG_ID() {
+    public long getFZG_ID() {
         return FZG_ID;
     }
 
@@ -64,7 +66,7 @@ public class Mauterhebung {
         this.FZG_ID = FZG_ID;
     }
 
-    public int getKATEGORIE_ID() {
+    public long getKATEGORIE_ID() {
         return KATEGORIE_ID;
     }
 
@@ -93,13 +95,14 @@ public class Mauterhebung {
         int id = getNextMautId();
 
         String sql = String.format("insert into MAUTERHEBUNG (MAUT_ID, ABSCHNITTS_ID, FZG_ID, KATEGORIE_ID, " +
-                "BEFAHRUNGSDATUM, KOSTEN) values (%d, %d, %d, %d, '%s', %f)",
-                id, this.ABSCHNITTS_ID, this.FZG_ID, this.KATEGORIE_ID, this.BEFAHRUNGSDATUM.toString(), this.KOSTEN);
-
+                "BEFAHRUNGSDATUM, KOSTEN) values (%d, %d, %d, %d, ?, %s)",
+                id, this.ABSCHNITTS_ID, this.FZG_ID, this.KATEGORIE_ID, String.valueOf(this.KOSTEN) );
         L.info(sql);
 
-        try (Statement statement = getConnection().createStatement()){
-            statement.executeUpdate(sql);
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)){
+            statement.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+
+            statement.executeUpdate();
 
         } catch (SQLException e) {
             L.error("", e);

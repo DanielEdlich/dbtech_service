@@ -10,10 +10,10 @@ import java.time.LocalDateTime;
 
 public class Buchung {
 
-    private int buchung_Id;
-    private int b_Id;
-    private int abschnitts_Id;
-    private int kategorie_Id;
+    private long buchung_Id;
+    private long b_Id;
+    private long abschnitts_Id;
+    private long kategorie_Id;
     private String kennzeichen;
     private Timestamp buchungsdatum;
     private Timestamp befahrungsdateum;
@@ -27,7 +27,7 @@ public class Buchung {
         this.connection = connection;
     }
 
-    public Buchung(int buchung_Id, int b_Id, int abschnitts_Id, int kategorie_Id, String kennzeichen, Timestamp buchungsdatum, Timestamp befahrungsdateum, float kosten) {
+    public Buchung(long buchung_Id, long b_Id, long abschnitts_Id, long kategorie_Id, String kennzeichen, Timestamp buchungsdatum, Timestamp befahrungsdateum, float kosten) {
         this.buchung_Id = buchung_Id;
         this.b_Id = b_Id;
         this.abschnitts_Id = abschnitts_Id;
@@ -45,35 +45,35 @@ public class Buchung {
         return connection;
     }
 
-    public int getBuchung_Id() {
+    public long getBuchung_Id() {
         return buchung_Id;
     }
 
-    public void setBuchung_Id(int buchung_Id) {
+    public void setBuchung_Id(long buchung_Id) {
         this.buchung_Id = buchung_Id;
     }
 
-    public int getB_Id() {
+    public long getB_Id() {
         return b_Id;
     }
 
-    public void setB_Id(int b_Id) {
+    public void setB_Id(long b_Id) {
         this.b_Id = b_Id;
     }
 
-    public int getAbschnitts_Id() {
+    public long getAbschnitts_Id() {
         return abschnitts_Id;
     }
 
-    public void setAbschnitts_Id(int abschnitts_Id) {
+    public void setAbschnitts_Id(long abschnitts_Id) {
         this.abschnitts_Id = abschnitts_Id;
     }
 
-    public int getKategorie_Id() {
+    public long getKategorie_Id() {
         return kategorie_Id;
     }
 
-    public void setKategorie_Id(int kategorie_Id) {
+    public void setKategorie_Id(long kategorie_Id) {
         this.kategorie_Id = kategorie_Id;
     }
 
@@ -139,14 +139,13 @@ public class Buchung {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 if (resultSet.next()) {
                     // Mautsatz is stored in cent
-                    float mautsatzJeKm = resultSet.getFloat("MAUTSATZ_JE_KM") / 100;
+                    return resultSet.getFloat("MAUTSATZ_JE_KM") / 100;
                 } else return 0;
             }
         } catch (SQLException e) {
             L.error("", e);
             throw new ServiceException();
         }
-        return 0;
     }
 
     public void update() {

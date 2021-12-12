@@ -31,16 +31,16 @@ public class BuchungFinder {
     }
 
     public Buchung findByKennzeichenMautAbschnitt(String kennzeichen, int mautAbschnitt){
-        String sql = String.format("select * from BUCHUNG where BEFAHRUNGSDATUM is null AND kennzeichen = '%s' AND ABSCHNITTS_ID = %d", kennzeichen, mautAbschnitt);
+        String sql = String.format("select * from BUCHUNG where kennzeichen = '%s' AND ABSCHNITTS_ID = %d order by BEFAHRUNGSDATUM desc", kennzeichen, mautAbschnitt);
         try (Statement statement = getConnection().createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 if (resultSet.next()) {
                     if(resultSet.getTimestamp("BEFAHRUNGSDATUM") == null) {
                         return new Buchung(
-                                resultSet.getInt("BUCHUNG_ID"),
-                                resultSet.getInt("B_ID"),
-                                resultSet.getInt("ABSCHNITTS_ID"),
-                                resultSet.getInt("KATEGORIE_ID"),
+                                resultSet.getLong("BUCHUNG_ID"),
+                                resultSet.getLong("B_ID"),
+                                resultSet.getLong("ABSCHNITTS_ID"),
+                                resultSet.getLong("KATEGORIE_ID"),
                                 resultSet.getString("KENNZEICHEN"),
                                 resultSet.getTimestamp("BUCHUNGSDATUM"),
                                 resultSet.getTimestamp("BEFAHRUNGSDATUM"),
